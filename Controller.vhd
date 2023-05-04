@@ -23,9 +23,10 @@ architecture control_signals of Controller is
 begin
 	
 		with opcode select ALU_A_select<=
-								'1' when "0100",
-								'1' when "0101",
+								'1' when "0100",	--load
+								'1' when "0101",	--store
 								'0' when others;
+								
 		with opcode select ALU_B_select<=
 								"01" when "0000",	--ADI
 								"01" when "0100",	--LW
@@ -45,17 +46,18 @@ begin
 								
 		with opcode select RF_D3_select <=
 								"01" when "0100",	--LW
+								"10" when "0011",	--LLI
 								"11" when "1100",	--JAL
 								"11" when "1101",	--JLR
 								"00" when others;
 		
 		with opcode select reg_wb <=
-									'0' when "0011",
-									'0' when "0101",
-									'0' when "1000",
-									'0' when "1001",
-									'0' when "1010",
-									'1' when others;
+									'0' when "0101",	--SW
+									'0' when "1000",	--BEQ
+									'0' when "1001",	--BLT
+									'0' when "1010",	--BLE
+									'0' when "1111",	--JRI
+									'1' when others;	--ADD, ADI, NAND, LW, LLI, JAL, JLR
 		
 	--ADD, NAND, LOAD, STORE
 		with opcode select pc_next<=

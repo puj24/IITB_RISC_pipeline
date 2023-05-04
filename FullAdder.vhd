@@ -9,22 +9,29 @@ entity FullAdder is
 end entity;
 
 architecture adder of FullAdder is
-	signal carry: std_logic_vector(16 downto 0);
-	signal sum: std_logic_vector(15 downto 0);
+
+		function ADD(A: in std_logic_vector(15 downto 0);
+					 B: in std_logic_vector(15 downto 0))
+	return std_logic_vector is	
+		variable sum : std_logic_vector(15 downto 0);
+		variable carry : std_logic_vector(15 downto 0);
+	begin
+			summer: for i in 0 to 15 loop
+						if i=0 then
+							sum(i) := B(i) xor A(i) xor'0' ;
+							carry(i) := B(i) and A(i);
+						else
+							sum(i) := B(i) xor A(i) xor carry(i-1);
+							carry(i) := (B(i) and A(i)) or (carry(i-1) and (B(i) or A(i)));
+						end if;						
+					end loop summer;
+		return carry(15) & sum;
+	end ADD;
+	
+	signal result: std_logic_vector(16 downto 0);
 begin
-	process(A, B) begin
-	 for i in 0 to 15 loop
-			if i = 0 then
-				sum(i) <= B(i) xor A(i) xor '0' ;
-				carry(i) <= B(i) and A(i);
-			else
-				sum(i) <= B(i) xor A(i) xor carry(i-1);
-				carry(i) <= (B(i) and A(i)) or (carry(i-1) and (B(i) or A(i)));
-						
-			end if;						
-	end loop differ;
-	end process;
-	A_B <= sum;
-	c_out <= carry(16);
+	result <= ADD(A, B);
+	c_out <= result(16);
+	A_B <= result(15 downto 0);
 	
 end adder;
