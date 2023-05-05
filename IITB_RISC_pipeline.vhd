@@ -124,10 +124,10 @@ architecture pipeline_design of pipeline is
 	signal mem_rd, mem_wr : std_logic:= '0';
 	
 	signal IF_ID : std_logic_vector(31 downto 0):= (others=>'0');
-	signal ID_RR : std_logic_vector(51 downto 0):= (others=>'0');
-	signal RR_EX : std_logic_vector(83 downto 0):= (others=>'0');
-	signal EX_MEM : std_logic_vector(99 downto 0):= (others=>'0');
-	signal MEM_WB : std_logic_vector(116 downto 0):= (others=>'0');
+	signal ID_RR : std_logic_vector(53 downto 0):= (others=>'0');
+	signal RR_EX : std_logic_vector(85 downto 0):= (others=>'0');
+	signal EX_MEM : std_logic_vector(101 downto 0):= (others=>'0');
+	signal MEM_WB : std_logic_vector(118 downto 0):= (others=>'0');
 	
 begin
 	
@@ -139,17 +139,17 @@ begin
 		
 		process(clock, RF_D3, RF_A3, RB, MEM_WB) 
 		begin
-		if(MEM_WB(116) = '1') then
+		if(MEM_WB(118) = '1') then
 			RB(to_integer(unsigned(RF_A3))) <= RF_D3;
 		end if;
 		end process;
 		
 		process(clock, EX_MEM, RAM, Data_out) begin
 			if(EX_MEM(33) = '1') then
-				Data_out <= RAM(to_integer(unsigned(EX_MEM(99 downto 84))));
+				Data_out <= RAM(to_integer(unsigned(EX_MEM(101 downto 86))));
 			
 			elsif(EX_MEM(32) = '1') then
-				RAM(to_integer(unsigned(EX_MEM(99 downto 84)))) <= EX_MEM(67 downto 52);
+				RAM(to_integer(unsigned(EX_MEM(101 downto 86)))) <= EX_MEM(69 downto 54);	--RF_D1
 			end if;
 		end process;
 	
@@ -174,8 +174,6 @@ begin
 	
 --	with ID_RR(42) select 
 	RF_A1 <= ID_RR(11 downto 9) ;
---							when '1',	--load, store
---							ID_RR(11 downto 9) when others;
 							
 	RF_A2 <= ID_RR(8 downto 6);
 	
@@ -185,22 +183,22 @@ begin
 							MEM_WB(11 downto 9) when others;
 							
 	with MEM_WB(46 downto 45) select RF_D3 <=
-							MEM_WB(99 downto 84) when "00", -- ALU_out
-							MEM_WB(115 downto 100) when "01",	--Data_out
-							Imm_SE_9_wr when "10", 	--Immediate
-							MEM_WB(31 downto 16) +2 when others;	--PC +2
+							MEM_WB(101 downto 86) when "00", 	-- ALU_out
+							MEM_WB(117 downto 102) when "01",	--Data_out
+							Imm_SE_9_wr when "10", 					--Immediate
+							MEM_WB(31 downto 16) +2 when others;--PC +2
 	
 	Imm_SE_9_wr <= "0000000" & MEM_WB(8 downto 0);
 	--ALU_A--
 	with RR_EX(42) select ALU_A<=
-							RR_EX( 83 downto 68) when '1',	--read from RR_EX register RF_D2
-							RR_EX( 67 downto 52) when others;	--RF_D1
+							RR_EX( 85 downto 70) when '1',	--read from RR_EX register RF_D2
+							RR_EX( 69 downto 54) when others;	--RF_D1
 
 	--ALU_B--
 	with RR_EX(41 downto 40) select ALU_B<=
 							Imm_SE_6 when "01",
 							Imm_SE_9 when "11",
-							RR_EX( 83 downto 68) when others;	--RF_D2
+							RR_EX( 85 downto 70) when others;	--RF_D2
 	
 	--PC select-- to be modified
 	PC_next_select: process(clock, RR_EX(35), branch_out) begin	--jump
@@ -209,9 +207,9 @@ begin
 				when '0' => PC <= PC + '1';
 				when others =>
 					if(RR_EX(35) = '1') then	--jump
-						if(jump_type = "00") then 		PC <= RR_EX(31 downto 16) + Imm_SE_6 + Imm_SE_6;
-						elsif(jump_type = "01") then 	PC <= RR_EX(83 downto 68);
-						else 									PC <= RR_EX(67 downto 52)+ Imm_SE_9 + Imm_SE_9;
+						if(RR_EX(53 downto 52) = "00") then 	PC <= RR_EX(31 downto 16) + Imm_SE_6 + Imm_SE_6;
+						elsif(RR_EX(53 downto 52) = "01") then 	PC <= RR_EX(85 downto 70);
+						else 												PC <= RR_EX(69 downto 54)+ Imm_SE_9 + Imm_SE_9;
 						end if;
 					elsif(branch_out = '1') then 		PC <= RR_EX(31 downto 16) + Imm_SE_6 + Imm_SE_6;
 					else 										PC <= PC + '1';
@@ -236,8 +234,12 @@ begin
 	IF_ID_reg: process(clock)
 	begin
 		if( clock = '1' and clock'event) then
-			IF_ID(31 downto 16) <= PC;
-			IF_ID(15 downto 0) <= Instruction; 
+			if (RR_EX(35) = '1' or branch_out = '1') then
+				IF_ID(31 downto 0) <= (others => '0');
+			else
+				IF_ID(31 downto 16) <= PC;
+				IF_ID(15 downto 0) <= Instruction;
+			end if;
 		end if;
 	end process;
 	
@@ -246,23 +248,28 @@ begin
 	begin
 		if( clock = '1' and clock'event) then
 			--control signals
-			ID_RR(51) <= carry_flag;
-			ID_RR(50) <= zero_flag;
-			ID_RR(49) <= pc_next;
-			ID_RR(48 downto 47) <= RF_A3_select;
-			ID_RR(46 downto 45) <= RF_D3_select;
-			ID_RR(44 downto 43) <= ALU_opcode;
-			ID_RR(42) <= ALU_A_select;
-			ID_RR(41 downto 40) <= ALU_B_select;
-			ID_RR(39) <= add;
-			ID_RR(38) <= branch_inst;
-			ID_RR(37 downto 36) <= branch_type;
-			ID_RR(35) <= jump;
-			ID_RR(34) <= reg_wb;
-			ID_RR(33) <= mem_rd;
-			ID_RR(32) <= mem_wr;
-			ID_RR(31 downto 16) <= IF_ID(31 downto 16);	--PC
-			ID_RR(15 downto 0) <= IF_ID(15 downto 0);		--Instruction
+			if (RR_EX(35) = '1' or branch_out = '1') then
+				ID_RR(53 downto 0) <= (others => '0');
+			else
+				ID_RR(53 downto 52) <= jump_type;
+				ID_RR(51) <= carry_flag;
+				ID_RR(50) <= zero_flag;
+				ID_RR(49) <= pc_next;
+				ID_RR(48 downto 47) <= RF_A3_select;
+				ID_RR(46 downto 45) <= RF_D3_select;
+				ID_RR(44 downto 43) <= ALU_opcode;
+				ID_RR(42) <= ALU_A_select;
+				ID_RR(41 downto 40) <= ALU_B_select;
+				ID_RR(39) <= add;
+				ID_RR(38) <= branch_inst;
+				ID_RR(37 downto 36) <= branch_type;
+				ID_RR(35) <= jump;
+				ID_RR(34) <= reg_wb;
+				ID_RR(33) <= mem_rd;
+				ID_RR(32) <= mem_wr;
+				ID_RR(31 downto 16) <= IF_ID(31 downto 16);	--PC
+				ID_RR(15 downto 0) <= IF_ID(15 downto 0);		--Instruction
+			end if;
 		end if;	
 	end process;
 	
@@ -270,10 +277,10 @@ begin
 	RR_EX_reg: process(clock)
 	begin
 		if( clock = '1' and clock'event) then
-			RR_EX(83 downto 68) <= RF_D2;
-			RR_EX(67 downto 52) <= RF_D1;
+			RR_EX(85 downto 70) <= RF_D2;
+			RR_EX(69 downto 54) <= RF_D1;
 		--control signals
-			RR_EX(51 downto 32) <= ID_RR(51 downto 32);
+			RR_EX(53 downto 32) <= ID_RR(53 downto 32);
 			RR_EX(31 downto 16) <= ID_RR(31 downto 16);	--PC
 			RR_EX(15 downto 0) <= ID_RR(15 downto 0);		--Instruction
 		end if;	
@@ -283,11 +290,11 @@ begin
 	EX_MEM_reg: process(clock)
 	begin
 		if( clock = '1' and clock'event) then
-			EX_MEM(99 downto 84) <= ALU_out;
-			EX_MEM(83 downto 68) <= RR_EX(83 downto 68);	--RF_D2
-			EX_MEM(67 downto 52) <= RR_EX(67 downto 52);	--RF_D1
+			EX_MEM(101 downto 86) <= ALU_out;
+			EX_MEM(85 downto 70) <= RR_EX(85 downto 70);	--RF_D2
+			EX_MEM(69 downto 54) <= RR_EX(69 downto 54);	--RF_D1
 		--control signals
-			EX_MEM(51 downto 32) <= RR_EX(51 downto 32);
+			EX_MEM(53 downto 32) <= RR_EX(53 downto 32);
 			EX_MEM(31 downto 16) <= RR_EX(31 downto 16);	--PC
 			EX_MEM(15 downto 0) <= RR_EX(15 downto 0);		--Instruction
 		end if;	
@@ -297,11 +304,11 @@ begin
 	MEM_WB_reg: process(clock)
 	begin
 		if( clock = '1' and clock'event) then
-			MEM_WB(116) <= (reg_wr_cz or (EX_MEM(48) or EX_MEM(47))) and EX_MEM(34);
-			MEM_WB(115 downto 100) <= Data_out;		--RF_D3
-			MEM_WB(99 downto 84) <= EX_MEM(99 downto 84);	--ALU_out
-			MEM_WB(83 downto 68) <= EX_MEM(83 downto 68);	--RF_D2
-			MEM_WB(67 downto 52) <= EX_MEM(67 downto 52);	--RF_D1
+			MEM_WB(118) <= (reg_wr_cz or (EX_MEM(48) or EX_MEM(47))) and EX_MEM(34);
+			MEM_WB(117 downto 102) <= Data_out;		--RF_D3
+			MEM_WB(101 downto 86) <= EX_MEM(101 downto 86);	--ALU_out
+			MEM_WB(85 downto 70) <= EX_MEM(85 downto 70);	--RF_D2
+			MEM_WB(69 downto 54) <= EX_MEM(69 downto 54);	--RF_D1
 		--control signals
 			MEM_WB(51 downto 32) <= EX_MEM(51 downto 32);
 			MEM_WB(31 downto 16) <= EX_MEM(31 downto 16);	--PC

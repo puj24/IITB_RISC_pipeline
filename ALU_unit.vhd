@@ -28,7 +28,7 @@ architecture ALU_design of ALU is
 	signal rf_wr : std_logic;
 	signal branch : std_logic;
 begin
-	process(ALU_opcode, cz, ALU_A, ALU_B, cpl_B, branch_inst)
+	process(ALU_opcode, cpl, cz, ALU_A, ALU_B, cpl_B, branch_inst, result)
 	begin
 		case ALU_opcode is
 			when "00" =>
@@ -71,7 +71,6 @@ begin
 				
 			when "10" =>	--load store
 				result <= ALU_A + ALU_B;
---				result <= "1010101010101010";
 				rf_wr <= '1';
 			when others =>
 				if(branch_inst ='1') then
