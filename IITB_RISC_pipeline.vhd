@@ -39,6 +39,11 @@ architecture pipeline_design of pipeline is
 	component Controller is
 	    port(opcode : in std_logic_vector(3 downto 0);
                 pc_next : out std_logic;
+					 regC_wr : out std_logic;
+					 regA_wr : out std_logic;
+					 regB_wr : out std_logic;
+					 regA_rd : out std_logic;
+					 regB_rd : out std_logic;
                 RF_A3_select : out std_logic_vector(1 downto 0);
                 RF_D3_select : out std_logic_vector(1 downto 0);
                 ALU_opcode : out std_logic_vector(1 downto 0);
@@ -101,6 +106,9 @@ architecture pipeline_design of pipeline is
 	signal PC, Instruction: std_logic_vector(15 downto 0):= (others=>'0');
 	signal pc_next : std_logic :='0';
 	
+	signal regC_wr, regA_wr, regB_wr : std_logic;
+	signal regA_rd, regB_rd : std_logic;
+	
 	signal RF_A1, RF_A2, RF_A3 : std_logic_vector(2 downto 0):= (others=>'0');
 	signal RF_D1, RF_D2, RF_D3 : std_logic_vector(15 downto 0):= (others=>'0');
 	signal reg_wb : std_logic :='0';
@@ -111,14 +119,14 @@ architecture pipeline_design of pipeline is
 	signal ALU_opcode, ALU_B_select  : std_logic_vector(1 downto 0):= (others=>'0');
    signal ALU_A_select : std_logic := '0';             
 
-	signal add, carry_flag, zero_flag : std_logic :='0';
+	signal carry_flag, zero_flag : std_logic :='0';
 	signal carry_out, zero_out : std_logic := '0';
 	signal branch_inst, branch_out : std_logic:='0' ;
 	signal branch_type, jump_type : std_logic_vector(1 downto 0) := (others=>'0');
 	
 	signal Imm_SE_6, Imm_SE_9, Imm_SE_9_wr : std_logic_vector(15 downto 0) := (others=>'0');
 	
-	signal branch, jump, reg_wr_cz: std_logic := '0';
+	signal add, branch, jump, reg_wr_cz: std_logic := '0';
 	signal Data_in, Data_out : std_logic_vector(15 downto 0) := (others=>'0');
 	
 	signal mem_rd, mem_wr : std_logic:= '0';
@@ -163,9 +171,10 @@ begin
 									branch_type => RR_EX(37 downto 36), branch_out => branch_out, 
 									reg_wr_cz => reg_wr_cz);
 									
-	Control_Unit: Controller port map(IF_ID(15 downto 12), pc_next,
-                RF_A3_select, RF_D3_select, ALU_opcode , ALU_A_select, ALU_B_select, add,
-                branch_inst,  branch_type, jump, jump_type, reg_wb, mem_rd , mem_wr);
+	Control_Unit: Controller port map(IF_ID(15 downto 12), pc_next, 
+									regC_wr, regA_wr, regB_wr, regA_rd, regB_rd,
+									RF_A3_select, RF_D3_select, ALU_opcode , ALU_A_select, ALU_B_select,
+									add, branch_inst,  branch_type, jump, jump_type, reg_wb, mem_rd , mem_wr);
 	
 --	Data_Memory : RAM port map(Mem_rd => EX_MEM(33), Mem_wr => EX_MEM(32), 
 --										Address => EX_MEM(99 downto 84), 

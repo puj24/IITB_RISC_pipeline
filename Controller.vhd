@@ -4,6 +4,11 @@ use ieee.std_logic_1164.all;
 entity Controller is
 	port(opcode : in std_logic_vector(3 downto 0);
 			pc_next : out std_logic;
+			regC_wr : out std_logic;
+			regA_wr : out std_logic;
+			regB_wr : out std_logic;
+			regA_rd : out std_logic;
+			regB_rd : out std_logic;
 			RF_A3_select : out std_logic_vector(1 downto 0);
 			RF_D3_select : out std_logic_vector(1 downto 0);
 			ALU_opcode : out std_logic_vector(1 downto 0);
@@ -21,7 +26,45 @@ end Controller;
 
 architecture control_signals of Controller is
 begin
-	
+		with opcode select regC_wr <=
+								'1' when "0001",	--ADD
+								'1' when "0010",	--NAND
+								'0' when others;
+		
+		with opcode select regA_wr <=
+								'1' when "0011",	--LLI
+								'1' when "0100",	--LOAD
+								'1' when "1100",	--JAL
+								'1' when "1101",	--JLR
+								'0' when others;							
+		
+		with opcode select regB_wr <=
+								'1' when "0000",	--ADI
+								'0' when others;
+								
+								
+		with opcode select regA_rd <=
+								'1' when "0001",	--ADD
+								'1' when "0010",	--NAND
+								'1' when "0000",	--ADI
+								'1' when "0101", 	--store
+								'1' when "1000",	--BEQ
+								'1' when "1001",	--BLT
+								'1' when "1010",	--BLE
+								'1' when "1111",	--JRI
+								'0' when others;
+								
+		with opcode select regB_rd <=
+								'1' when "0001",	--ADD
+								'1' when "0010",	--NAND
+								'1' when "0100",	--LOAD
+								'1' when "0101",	--store
+								'1' when "1000",	--BEQ
+								'1' when "1001",	--BLT
+								'1' when "1010",	--BLE
+								'1' when "1101",	--JLR
+								'0' when others;
+		
 		with opcode select ALU_A_select<=
 								'1' when "0100",	--load
 								'1' when "0101",	--store
