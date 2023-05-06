@@ -74,6 +74,8 @@ begin
 								"01" when "0000",	--ADI
 								"01" when "0100",	--LW
 								"01" when "0101",	--SW
+								"10" when "1100",	--JAL
+								"10" when "1101",	--JLR
 								"11" when "1111",	--JRI
 								"00" when others;
 		
@@ -104,12 +106,12 @@ begin
 		
 	--ADD, NAND, LOAD, STORE
 		with opcode select pc_next<=
-								'1' when "1000",
-								'1' when "1001",
-								'1' when "1010",
-								'1' when "1100",
-								'1' when "1101",
-								'1' when "1111",
+								'1' when "1000",	--BEQ
+								'1' when "1001",	--BLT
+								'1' when "1010",	--BLE
+								'1' when "1100",	--JAL
+								'1' when "1101",	--JLR
+								'1' when "1111",	--JRI
 								'0' when others;
 	
 	--ADD, ADI
@@ -124,6 +126,8 @@ begin
 								"10" when "0100",	--load
 								"10" when "0101",	--store
 								"10" when "0000",	--adi
+								"10" when "1100",	--JAL
+								"10" when "1101",	--JLR
 								"11" when others;
 	
 	--BEQ, BLT, BLE 
@@ -150,11 +154,11 @@ begin
 								"11" when others;	--JRI
 								
 		with opcode select mem_rd<=
-								'1' when "0100",
+								'1' when "0100",	--load
 								'0' when others;
 								
 		with opcode select mem_wr<=
-									'1' when "0101",
+									'1' when "0101",	--store
 									'0' when others;
 		
 end control_signals;

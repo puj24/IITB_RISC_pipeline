@@ -14,15 +14,15 @@ entity Register_Bank is
 end Register_Bank;
 
 architecture RF_design of Register_Bank is
-	type Reg_array is array(0 to 8) of std_logic_vector(15 downto 0);
+	type Reg_array is array(0 to 7) of std_logic_vector(15 downto 0);
 	signal RB: Reg_array:= (others =>"0000000000000000");
 begin
+	process(RF_A1, RF_A2, RF_A3, RF_D3, RB, reg_wb) begin
 		RF_D1 <= RB(to_integer(unsigned(RF_A1)));
 		RF_D2 <= RB(to_integer(unsigned(RF_A2)));
 		
-		process(reg_wb) begin
 		if(reg_wb = '1') then
 			RB(to_integer(unsigned(RF_A3))) <= RF_D3;
 		end if;
-		end process;
+	end process;
 end RF_design;

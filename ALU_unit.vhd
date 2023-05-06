@@ -18,6 +18,8 @@ entity ALU is
 			branch_inst : in std_logic;
 			branch_type : in std_logic_vector(1 downto 0);
 			branch_out : out std_logic;
+			jump_in : in std_logic;
+--			jump_out : out std_logic;
 			reg_wr_cz : out std_logic
 			);
 end entity;
@@ -26,9 +28,9 @@ architecture ALU_design of ALU is
 	signal cpl_B, result : std_logic_vector(15 downto 0) := (others => '0');
 	signal carry : std_logic;
 	signal rf_wr : std_logic;
-	signal branch : std_logic;
+	signal branch, jump : std_logic;
 begin
-	process(ALU_opcode, cpl, cz, ALU_A, ALU_B, cpl_B, branch_inst, result)
+	process(ALU_opcode, zero_flag, carry_flag, cpl, cz, ALU_A, ALU_B, cpl_B, branch_inst, branch_type, jump_in, result)
 	begin
 		case ALU_opcode is
 			when "00" =>
@@ -54,6 +56,9 @@ begin
 				if(cz = "11") then
 					result <= result + carry_flag;
 				end if;
+				branch <= '0';
+				jump <= '0';
+				
 			when "01" =>
 				if(cpl = '1') then
 					result <= ALU_A nand (not(ALU_B));
@@ -68,10 +73,19 @@ begin
 				else 
 					rf_wr <= '1';
 				end if;
+				branch <= '0';
+				jump <= '0';
 				
 			when "10" =>	--load store
 				result <= ALU_A + ALU_B;
 				rf_wr <= '1';
+				branch <= '0';
+				if(jump_in = '1') then
+					jump <= '1';
+				else
+					jump <= '0';
+				end if;
+				
 			when others =>
 				if(branch_inst ='1') then
 					case branch_type is
@@ -94,7 +108,15 @@ begin
 								branch <= '0';
 							end if;
 					end case;
-				else	
+					rf_wr <= '0';
+					jump <= '0';
+					result <= "0000000000000000";
+				else
+					if(jump_in = '1') then
+						jump <= '1';
+					else
+						jump <= '0';
+					end if;
 					branch <= '0';
 					rf_wr <= '0';
 					result <= "0000000000000000";
@@ -113,6 +135,7 @@ begin
 	
 	carry_out <= add and carry;
 	branch_out <= branch;
+--	jump_out <= jump;
 	reg_wr_cz <= rf_wr;
 	ALU_out <= result;
 	
